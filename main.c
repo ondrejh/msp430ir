@@ -1,33 +1,29 @@
 //******************************************************************************
-// DCF77 home automation clock
+// msp430 ir receiver
 //
 // author: Ondrej Hejda
 // date:   2.10.2012
 //
 // resources:
 //
-//  Using ACLK and the 32kHz Crystal .. thanks to:
-//   "http://www.msp430launchpad.com/2012/03/using-aclk-and-32khz-crystal.html"
-//  Interface MSP430 Launchpad with LCD Module (LCM) in 4 bit mode .. thanks to:
-//   "http://cacheattack.blogspot.cz/2011/06/quick-overview-on-interfacing-msp430.html"
-//  Buttons: MSP430G2xx3 Demo - Software Port Interrupt Service on P1.4 from LPM4
+//  msp430 dcf77 clock repo
 //
 //
 // hardware: MSP430G2553 (launchpad)
 //
 //                MSP4302553
 //             -----------------
-//         /|\|              XIN|----  -----------
-//          | |                 |     | 32.768kHz |---
-//          --|RST          XOUT|----  -----------    |
-//            |                 |                    ---
+//        /|\ |                 |
+//         |  |                 |
+//          --|RST              |
+//            |                 |
 //            |                 |
 //            |           P1.1,2|--> UART (debug output 9.6kBaud)
 //            |                 |
 //            |             P1.0|--> RED LED (active high)
 //            |             P1.6|--> GREEN LED (active high)
 //            |                 |
-//            |             P1.7|<---- IR receiver
+//            |             P1.7|<-- IR receiver
 //            |                 |
 //
 //******************************************************************************
@@ -46,6 +42,15 @@
 #define LED_GREEN_OFF() {P1OUT&=~0x40;}
 #define LED_GREEN_SWAP() {P1OUT^=0x40;}
 
+// ir receiver input
+#define IR_PIN_MASK BIT7
+
+#define TIMER_PRESET 10000
+
+#define IR_BUFLEN 128
+uint16_t ir_buffer[IR_BUFLEN];
+int16_t ir_bufptr = -1;
+bool ir_buflocked = false;
 
 // leds and dco init
 void board_init(void)
@@ -54,7 +59,23 @@ void board_init(void)
 	BCSCTL1 = CALBC1_1MHZ;		// Set DCO
 	DCOCTL = CALDCO_1MHZ;
 
-	LED_INIT(); // leds
+    // leds
+	LED_INIT();
+
+	// ir input (with interrupt)
+	P1DIR &= ~IR_PIN_MASK; // input
+	P1REN |=  IR_PIN_MASK; // pullup
+	P1IES |=  IR_PIN_MASK; // hi/lo edge (first)
+    P1IE  |=  IR_PIN_MASK; // interrupt enable
+    P1IFG &= ~IR_PIN_MASK; // clear interrupt flag
+}
+
+// timer initialization
+void timer_init(void)
+{
+    CCTL0 = CCIE;               // CCR0 interrupt enabled
+    CCR0 = TIMER_PRESET;
+    TACTL = TASSEL_2 + MC_0;    // SMCLK, stop
 }
 
 // main program body
@@ -63,13 +84,66 @@ int main(void)
 	WDTCTL = WDTPW + WDTHOLD;	// Stop WDT
 
 	board_init(); // init dco and leds
-	uart_init(); // init uart (communication)
+	uart_init();  // init uart (communication)
+	timer_init(); // init timer
 
 	while(1)
 	{
         __bis_SR_register(CPUOFF + GIE); // enter sleep mode (leave on rtc second event)
-        LED_RED_SWAP();
+        LED_GREEN_ON();
+        int16_t ir_cmdlen = ir_bufptr;
+        ir_buflocked = true;
+        ir_bufptr = -1;
+        int16_t i;
+        uart_putuint16(ir_cmdlen);
+        uart_putc(':');
+        for (i=0;i<ir_cmdlen;i++)
+        {
+            while(uart_ontx()) {};
+            uart_putuint16(ir_buffer[i]);
+            if (i<(ir_cmdlen-1)) uart_putc(';');
+        }
+        uart_puts("\n\r\n\r");
+        LED_GREEN_OFF();
 	}
 
 	return -1;
+}
+
+// Port 1 interrupt service routine
+#pragma vector=PORT1_VECTOR
+__interrupt void Port_1(void)
+{
+    uint16_t tcap = TAR;
+    TACTL |= TACLR;             // clear timer
+    P1IFG &= ~IR_PIN_MASK;      // clear IFG
+    P1IES = (P1IN&IR_PIN_MASK); // change edge polarity
+    TACTL = TASSEL_2 + MC_2;    // start timer
+
+    if (!ir_buflocked)
+    {
+        if (ir_bufptr<0)
+        {
+            LED_RED_ON();
+        }
+        else
+        {
+            ir_buffer[ir_bufptr]=tcap;
+            if (P1IN&IR_PIN_MASK) ir_buffer[ir_bufptr]|=0x8000;
+        }
+
+        ir_bufptr++;
+        if (ir_bufptr==IR_BUFLEN) ir_bufptr=(IR_BUFLEN-1);
+    }
+
+    //__bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
+}
+
+// Timer A0 interrupt service routine
+#pragma vector=TIMER0_A0_VECTOR
+__interrupt void Timer_A (void)
+{
+    TACTL &= ~(MC1|MC0);    // stop timer
+    LED_RED_OFF();
+    __bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
 }

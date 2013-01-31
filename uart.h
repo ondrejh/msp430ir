@@ -25,4 +25,7 @@ void uart_init(void); // initialization
 int uart_putc(char c); // put char function
 int uart_puts(char *s); // put string function
 
+void uart_putuint16(uint16_t ui);
+bool uart_ontx(void); // return true if transmitting
+
 #endif /* UART_H_ */

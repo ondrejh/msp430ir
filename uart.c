@@ -61,6 +61,14 @@ int8_t c2h(char c)
     return -1;
 }
 
+void uart_putuint16(uint16_t ui)
+{
+    uart_putc(h2c((uint16_t)(ui>>12)));
+    uart_putc(h2c((uint16_t)(ui>>8)));
+    uart_putc(h2c((uint16_t)(ui>>4)));
+    uart_putc(h2c((uint16_t)ui));
+}
+
 // RS485 like data direction controll
 void tx_output_enable(bool enable)
 {
@@ -74,6 +82,11 @@ void tx_output_enable(bool enable)
         P1SEL &= ~BIT2;
         P1SEL2 &= ~BIT2;
     }*/
+}
+
+bool uart_ontx(void)
+{
+    return uart_tx_transmitt;
 }
 
 // uart initialization
