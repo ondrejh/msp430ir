@@ -163,7 +163,7 @@ __interrupt void USCI0RX_ISR(void)
 	char c = UCA0RXBUF;		// read char
     if (c=='?')
     {
-        uart_puts("M430IR_V001\n\r");
+        uart_puts("M430IR_V001\r\n");
 	}
 }
 

@@ -117,7 +117,7 @@ int main(void)
                 uart_putuint16(ir_buf.buffer[i]);
                 if (i<(ir_buf.bufptr-1)) uart_putc(';');
             }
-            uart_puts("\n\r");
+            uart_puts("\r\n");
             TACTL |= TACLR;          // clear timer
             TACTL = TASSEL_2 + MC_2; // start timer
             ir_buf.status = IR_STAT_DONE;
