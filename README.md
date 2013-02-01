@@ -11,3 +11,4 @@ Done:
 Todo:
 
     - decode buffer
+    - add some graphical output of dump script (matplotlib suggested)
