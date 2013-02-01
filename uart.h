@@ -20,12 +20,11 @@
 char h2c(unsigned int h); // hex to char
 int8_t c2h(char c); // char to hex
 
-
 void uart_init(void); // initialization
 int uart_putc(char c); // put char function
 int uart_puts(char *s); // put string function
 
-void uart_putuint16(uint16_t ui);
+void uart_putuint16(uint16_t ui); // send 16bit hex to uart
 bool uart_ontx(void); // return true if transmitting
 
 #endif /* UART_H_ */

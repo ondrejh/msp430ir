@@ -5,9 +5,9 @@ IR receiver for MSP430G controllers.
 
 Done:
 
+    - ir input buffer
+    - ir code serial dump
+
 Todo:
 
-    - init input
-    - create timing
-    - some input buffer
-    - ...
+    - decode buffer

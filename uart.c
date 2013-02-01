@@ -84,6 +84,7 @@ void tx_output_enable(bool enable)
     }*/
 }
 
+// return true if tranmitting (can be used for polling)
 bool uart_ontx(void)
 {
     return uart_tx_transmitt;
@@ -162,7 +163,7 @@ __interrupt void USCI0RX_ISR(void)
 	char c = UCA0RXBUF;		// read char
     if (c=='?')
     {
-        uart_puts("Hello World!\n");
+        uart_puts("M430IR_V001\n\r");
 	}
 }
 

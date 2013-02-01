@@ -14,12 +14,8 @@
 //                MSP4302553
 //             -----------------
 //        /|\ |                 |
-//         |  |                 |
+//         |  |           P1.1,2|--> UART (debug output 9.6kBaud)
 //          --|RST              |
-//            |                 |
-//            |                 |
-//            |           P1.1,2|--> UART (debug output 9.6kBaud)
-//            |                 |
 //            |             P1.0|--> RED LED (active high)
 //            |             P1.6|--> GREEN LED (active high)
 //            |                 |
@@ -47,9 +43,20 @@
 
 #define TIMER_PRESET 10000
 
-#define IR_BUFLEN 128
-uint16_t ir_buffer[IR_BUFLEN];
-int16_t ir_bufptr = -1;
+#define IR_STAT_WAIT    0
+#define IR_STAT_GETTING 1
+#define IR_STAT_USING   2
+#define IR_STAT_DONE    3
+#define IR_BUFLEN 64
+
+typedef struct ir_buf_struct
+{
+    uint16_t status;
+    uint16_t buffer[IR_BUFLEN];
+    uint16_t bufptr;
+} ir_buf_t;
+
+ir_buf_t ir_buf;
 
 // leds and dco init
 void board_init(void)
@@ -77,10 +84,19 @@ void timer_init(void)
     TACTL = TASSEL_2 + MC_0;    // SMCLK, stop
 }
 
+// timer restart
+void timer_restart(void)
+{
+    TACTL |= TACLR;             // clear timer
+    TACTL = TASSEL_2 + MC_2;    // start timer
+}
+
 // main program body
 int main(void)
 {
 	WDTCTL = WDTPW + WDTHOLD;	// Stop WDT
+
+	ir_buf.status = 0;
 
 	board_init(); // init dco and leds
 	uart_init();  // init uart (communication)
@@ -89,20 +105,24 @@ int main(void)
 	while(1)
 	{
         __bis_SR_register(CPUOFF + GIE); // enter sleep mode (leave on rtc second event)
-        LED_GREEN_ON();
-        int16_t ir_cmdlen = ir_bufptr;
-        ir_bufptr = -1;
-        int16_t i;
-        uart_putuint16(ir_cmdlen);
-        uart_putc(':');
-        for (i=0;i<ir_cmdlen;i++)
+        if (ir_buf.status==IR_STAT_USING)
         {
-            while(uart_ontx()) {};
-            uart_putuint16(ir_buffer[i]);
-            if (i<(ir_cmdlen-1)) uart_putc(';');
+            LED_GREEN_ON();
+            uint16_t i;
+            uart_putuint16(ir_buf.bufptr);
+            uart_putc(':');
+            for (i=0;i<ir_buf.bufptr;i++)
+            {
+                while(uart_ontx()) {};
+                uart_putuint16(ir_buf.buffer[i]);
+                if (i<(ir_buf.bufptr-1)) uart_putc(';');
+            }
+            uart_puts("\n\r");
+            TACTL |= TACLR;          // clear timer
+            TACTL = TASSEL_2 + MC_2; // start timer
+            ir_buf.status = IR_STAT_DONE;
+            LED_GREEN_OFF();
         }
-        uart_puts("\n\r\n\r");
-        LED_GREEN_OFF();
 	}
 
 	return -1;
@@ -113,25 +133,27 @@ int main(void)
 __interrupt void Port_1(void)
 {
     uint16_t tcap = TAR;
-    TACTL |= TACLR;             // clear timer
-    P1IFG &= ~IR_PIN_MASK;      // clear IFG
-    P1IES = (P1IN&IR_PIN_MASK); // change edge polarity
-    TACTL = TASSEL_2 + MC_2;    // start timer
+    uint8_t next_mask = P1IN&IR_PIN_MASK;
 
-    if (ir_bufptr<0)
+    timer_restart();
+    P1IES = next_mask;      // change edge polarity
+    P1IFG &= ~IR_PIN_MASK;  // clear IFG
+
+    switch (ir_buf.status)
     {
-        LED_RED_ON();
+        case IR_STAT_WAIT:
+            LED_RED_ON();
+            ir_buf.bufptr=0;
+            ir_buf.status=IR_STAT_GETTING;
+            break;
+        case IR_STAT_GETTING:
+            if (next_mask!=0) tcap|=0x8000;
+            ir_buf.buffer[ir_buf.bufptr++]=tcap;
+            if (ir_buf.bufptr==IR_BUFLEN) ir_buf.bufptr=(IR_BUFLEN-1);
+            break;
+        default:
+            break;
     }
-    else
-    {
-        ir_buffer[ir_bufptr]=tcap;
-        if (P1IN&IR_PIN_MASK) ir_buffer[ir_bufptr]|=0x8000;
-    }
-
-    ir_bufptr++;
-    if (ir_bufptr==IR_BUFLEN) ir_bufptr=(IR_BUFLEN-1);
-
-    //__bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
 }
 
 // Timer A0 interrupt service routine
@@ -139,6 +161,17 @@ __interrupt void Port_1(void)
 __interrupt void Timer_A (void)
 {
     TACTL &= ~(MC1|MC0);    // stop timer
-    LED_RED_OFF();
-    __bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
+    switch (ir_buf.status)
+    {
+        case IR_STAT_GETTING:
+            LED_RED_OFF();
+            ir_buf.status=IR_STAT_USING;
+            __bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
+            break;
+        case IR_STAT_DONE:
+            ir_buf.status=IR_STAT_WAIT;
+            break;
+        default:
+            break;
+    }
 }
