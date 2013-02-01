@@ -50,7 +50,6 @@
 #define IR_BUFLEN 128
 uint16_t ir_buffer[IR_BUFLEN];
 int16_t ir_bufptr = -1;
-bool ir_buflocked = false;
 
 // leds and dco init
 void board_init(void)
@@ -92,7 +91,6 @@ int main(void)
         __bis_SR_register(CPUOFF + GIE); // enter sleep mode (leave on rtc second event)
         LED_GREEN_ON();
         int16_t ir_cmdlen = ir_bufptr;
-        ir_buflocked = true;
         ir_bufptr = -1;
         int16_t i;
         uart_putuint16(ir_cmdlen);
@@ -120,21 +118,18 @@ __interrupt void Port_1(void)
     P1IES = (P1IN&IR_PIN_MASK); // change edge polarity
     TACTL = TASSEL_2 + MC_2;    // start timer
 
-    if (!ir_buflocked)
+    if (ir_bufptr<0)
     {
-        if (ir_bufptr<0)
-        {
-            LED_RED_ON();
-        }
-        else
-        {
-            ir_buffer[ir_bufptr]=tcap;
-            if (P1IN&IR_PIN_MASK) ir_buffer[ir_bufptr]|=0x8000;
-        }
-
-        ir_bufptr++;
-        if (ir_bufptr==IR_BUFLEN) ir_bufptr=(IR_BUFLEN-1);
+        LED_RED_ON();
     }
+    else
+    {
+        ir_buffer[ir_bufptr]=tcap;
+        if (P1IN&IR_PIN_MASK) ir_buffer[ir_bufptr]|=0x8000;
+    }
+
+    ir_bufptr++;
+    if (ir_bufptr==IR_BUFLEN) ir_bufptr=(IR_BUFLEN-1);
 
     //__bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
 }
