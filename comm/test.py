@@ -1,7 +1,7 @@
 from serial import Serial
 
-#PortName = 'COM6'
-PortName = '/dev/ttyACM0'
+PortName = 'COM6'
+#PortName = '/dev/ttyACM0'
 PortSpeed = 9600
 PortTimeout = 0.5
 

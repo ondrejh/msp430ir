@@ -2,8 +2,8 @@
 
 from serial import Serial
 
-#portname='COM6'
-portname='/dev/ttyACM0'
+portname='COM6'
+#portname='/dev/ttyACM0'
 hellostring='M430IR_V001'
 
 codestoread=1
@@ -23,15 +23,13 @@ def decode_line(line):
 			linesplit = linesplit[1].split(';')
 			if len(linesplit)!=linelen:
 				return('Number of entries doesn\'t fit') #error 3
+			valnow = 0
 			val=[]
 			tim=[]
 			for entid in range(len(linesplit)):
 				n=int(linesplit[entid],base=16)
-				if n>=0x8000:
-					n=n-0x8000
-					val=val+[0]
-				else:
-					val=val+[1]
+				valnow=valnow^0x01
+				val=val+[valnow]
 				tim=tim+[n]
 			return(linelen,val,tim) #no error (just return values)
 
@@ -53,14 +51,11 @@ def expand_to_plot(val,tim):
 		vout=[vabs,vabs]
 		for listid in range(len(val)):
 			tout+=[tabs]
-			tabs+=tim[listid]
+			tabs=tim[listid]
 			vabs=val[listid]
 			tout+=[tabs]
 			vout+=[vabs,vabs]
-		if vabs==0:
-			vabs=1
-		else:
-			vabs=0
+		vabs^=0x01
 		tout+=[tabs,tabs+1000]
 		vout+=[vabs,vabs]
 		return(vout,tout) #return values
@@ -87,6 +82,7 @@ if __name__ == "__main__":
                                         line=line.strip().decode('ascii')
                                         print(line)
                                         lindec=decode_line(line)
+                                        #print(lindec)
                                         if type(lindec[0])==int:
                                                 codes+=[lindec]
                                                 lines+=[expand_to_plot(lindec[1],lindec[2])]

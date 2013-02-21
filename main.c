@@ -41,7 +41,7 @@
 // ir receiver input
 #define IR_PIN_MASK BIT7
 
-#define TIMER_PRESET 10000
+#define TIMER_PRESET 25000
 
 #define IR_STAT_WAIT    0
 #define IR_STAT_GETTING 1
@@ -135,19 +135,19 @@ __interrupt void Port_1(void)
     uint16_t tcap = TAR;
     uint8_t next_mask = P1IN&IR_PIN_MASK;
 
-    timer_restart();
     P1IES = next_mask;      // change edge polarity
     P1IFG &= ~IR_PIN_MASK;  // clear IFG
 
     switch (ir_buf.status)
     {
         case IR_STAT_WAIT:
+            timer_restart();
             LED_RED_ON();
             ir_buf.bufptr=0;
             ir_buf.status=IR_STAT_GETTING;
             break;
         case IR_STAT_GETTING:
-            if (next_mask!=0) tcap|=0x8000;
+            //if (next_mask!=0) tcap|=0x8000;
             ir_buf.buffer[ir_buf.bufptr++]=tcap;
             if (ir_buf.bufptr==IR_BUFLEN) ir_buf.bufptr=(IR_BUFLEN-1);
             break;
