@@ -7,8 +7,8 @@ Done:
 
     - ir input buffer
     - ir code serial dump
+    - serial dump plotting script (matplotlib)
 
 Todo:
 
     - decode buffer
-    - add some graphical output of dump script (matplotlib suggested)
