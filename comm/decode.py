@@ -94,11 +94,36 @@ if __name__ == "__main__":
 		else:
 			print('Init module answer: No reponse .. break')
 
-	from pylab import *
+	if len(lines)>0:
 
-	figure(1)
-	for line in lines:
-		plot(line[1],line[0])
-	grid('on')
-	axis([None,None,-0.5,1.5])
-	show()
+		# plot codes
+		from pylab import *
+
+		figure(1)
+		for line in lines:
+			plot(line[1],line[0])
+		grid('on')
+		axis([None,None,-0.5,1.5])
+		show()
+
+		#generate average code (if all the same length)
+		avlen = codes[0][0]
+		for codeid in range(codescnt):
+			if avlen!=codes[codeid][0]:
+				avlen=None
+		if avlen!=None:
+			avcode=[]
+			for codeid in range(codescnt):
+				for itemid in range(len(codes[0][1])):
+					if codeid>0:
+						avcode[itemid]+=codes[codeid][1][itemid]
+					else:
+						avcode+=[codes[codeid][1][itemid]]
+			for itemid in range(len(avcode)):
+				avcode[itemid]=round(avcode[itemid]/codescnt)
+
+			print('Average code:')
+			print(avcode)
+			
+		else:
+			print('Codes doesn\'t have the same length')
