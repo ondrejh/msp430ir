@@ -7,3 +7,4 @@
 *.map
 msp430sht.txt
 m430ir.txt
+comm/*.exe
