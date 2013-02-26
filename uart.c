@@ -69,6 +69,12 @@ void uart_putuint16(uint16_t ui)
     uart_putc(h2c((uint16_t)ui));
 }
 
+void uart_putint8(int8_t i)
+{
+    uart_putc(h2c((uint8_t)(i>>4)));
+    uart_putc(h2c((uint8_t)(i)));
+}
+
 // RS485 like data direction controll
 void tx_output_enable(bool enable)
 {

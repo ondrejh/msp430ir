@@ -37,8 +37,10 @@ void irdecode_init(void);
 bool is_ircode_present(void);
 void ircode_mark_used(void);
 
+#ifdef DEBUG
 void ircode_uart_send(void);
+#endif
 
-int8_t irdecode();
+int8_t ircode_decode();
 
 #endif

@@ -25,6 +25,7 @@ int uart_putc(char c); // put char function
 int uart_puts(char *s); // put string function
 
 void uart_putuint16(uint16_t ui); // send 16bit hex to uart
+void uart_putint8(int8_t i); // send 8bit hex to uart
 bool uart_ontx(void); // return true if transmitting
 
 #endif /* UART_H_ */

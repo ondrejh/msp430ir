@@ -13,12 +13,16 @@ MCU        = msp430g2553
 #MCU        = msp430g2452
 # List all the source files here
 # eg if you have a source file foo.c then list it here
-SOURCES = main.c uart.c irdecode.c
+#SOURCES = main.c uart.c irdecode.c
+SOURCES = main.c irdecode.c
 # Include are located in the Include directory
 INCLUDES = -IInclude
+# Defines
+#DEFINES = -DDEBUG
+DEFINES =
 # Add or subtract whatever MSPGCC flags you want. There are plenty more
 #######################################################################################
-CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES)
+CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES) $(DEFINES)
 ASFLAGS  = -mmcu=$(MCU) -x assembler-with-cpp -Wa,-gstabs
 LDFLAGS  = -mmcu=$(MCU) -Wl,-Map=$(TARGET).map
 ########################################################################################

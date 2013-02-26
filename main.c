@@ -27,7 +27,10 @@
 // include section
 #include <msp430g2553.h>
 
+#ifdef DEBUG
 #include "uart.h"
+#endif
+
 #include "irdecode.h"
 
 // board (leds, button)
@@ -55,7 +58,10 @@ int main(void)
 {
 	WDTCTL = WDTPW + WDTHOLD;	// Stop WDT
 
+    #ifdef DEBUG
 	uart_init();  // init uart (communication)
+	#endif
+
 	board_init(); // init dco and leds
 
 	irdecode_init(); // init irdecode module
@@ -65,10 +71,23 @@ int main(void)
         __bis_SR_register(CPUOFF + GIE); // enter sleep mode (leave on rtc second event)
         if (is_ircode_present())
         {
+            #ifdef DEBUG
+            // debug mode prints whole received code on uart
             LED_GREEN_ON();
             ircode_uart_send();
+            //uart_putint8(ircode_decode());
+            //uart_puts("\r\n");
             ircode_mark_used();
             LED_GREEN_OFF();
+            #else
+            // normal mode tries to decode received code
+            int8_t code = ircode_decode();
+            if (code>=0)
+            {
+                LED_GREEN_SWAP();
+            }
+            ircode_mark_used();
+            #endif
         }
 	}
 

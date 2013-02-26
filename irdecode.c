@@ -26,8 +26,12 @@
 #include "irdecode.h"
 #include "uart.h"
 
+#include "ircodes.h"
 
 /// defines
+
+// ir code variance (maximum difference of code pulse)
+#define IRVARIANCE 50
 
 // ir receiver signalisation led
 #define IRLED_INIT() {P1DIR|=0x01;P1OUT&=~0x01;}
@@ -93,6 +97,7 @@ void ircode_mark_used(void)
     timer_restart(IRCODE_PAUSE);
 }
 
+#ifdef DEBUG
 // ir code send via uart
 void ircode_uart_send(void)
 {
@@ -110,10 +115,42 @@ void ircode_uart_send(void)
 
     uart_puts("\r\n");
 }
+#endif
 
-// decode ir code
-int8_t irdecode(void)
+// decode ir code (according to ircodes.h)
+// return code value if code fits or -1 if no code fits
+int8_t ircode_decode(void)
 {
+    int8_t code,pulse;
+
+    // copy of the data pointer
+    const uint16_t *codesptr = ircode_data;
+
+    for (code=0;code<IRCODES;code++)
+    {
+        uint16_t codelen = *codesptr++;
+        bool codepass = true;
+
+        if (codelen!=ir_buf.bufptr) codepass = false;
+
+        for (pulse=0;pulse<codelen;pulse++)
+        {
+            // even if the code doesn't fit read through all pulses
+            uint16_t thispulse = *codesptr++;
+            // test code pulses
+            if (codepass)
+            {
+                // if code doesn't fit set flag
+                if (thispulse<(ir_buf.buffer[pulse]-IRVARIANCE)) codepass=false;
+                if (thispulse>(ir_buf.buffer[pulse]+IRVARIANCE)) codepass=false;
+            }
+        }
+
+        if (codepass) break;
+    }
+
+    if (code!=IRCODES) return(code);
+
     return -1; // no code detected
 }
 
