@@ -8,7 +8,9 @@ Done:
     - ir input buffer
     - ir code serial dump
     - serial dump plotting script (matplotlib)
+	- script generating .h file containing ir codes
+	- decode function
 
 Todo:
 
-    - decode buffer
+    - application
