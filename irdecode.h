@@ -20,7 +20,7 @@
 #define IR_STAT_DONE    3
 
 /// length of ir buffer
-#define IR_BUFLEN 64
+#define IR_BUFLEN 32
 
 /// ir buffer data structure
 typedef struct ir_buf_struct

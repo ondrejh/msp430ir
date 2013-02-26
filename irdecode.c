@@ -23,6 +23,8 @@
 /// includes
 
 #include <msp430g2553.h>
+//#include <msp430g2452.h>
+//#include <msp430g2201.h>
 #include "irdecode.h"
 #include "uart.h"
 

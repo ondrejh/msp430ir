@@ -22,10 +22,15 @@
 //            |             P1.7|<-- IR receiver
 //            |                 |
 //
+// alternatively the MSP430G2452(20pin) or MSP430G2201(20pin)
+//    can be used (no uart)
+//
 //******************************************************************************
 
 // include section
 #include <msp430g2553.h>
+//#include <msp430g2452.h>
+//#include <msp430g2201.h>
 
 #ifdef DEBUG
 #include "uart.h"
