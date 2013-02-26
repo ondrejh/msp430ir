@@ -25,6 +25,7 @@
 		</Compiler>
 		<Unit filename="Makefile" />
 		<Unit filename="README.md" />
+		<Unit filename="ircodes.h" />
 		<Unit filename="irdecode.c">
 			<Option compilerVar="CC" />
 		</Unit>

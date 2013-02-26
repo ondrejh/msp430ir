@@ -47,6 +47,11 @@
 #define LED_GREEN_OFF() {P1OUT&=~0x40;}
 #define LED_GREEN_SWAP() {P1OUT^=0x40;}
 
+
+// timeout timer for led swithing off (uses wdt)
+#define LED_TIMEOUT_PRESET 25
+uint8_t led_timeout = 0;
+
 // leds and dco init
 void board_init(void)
 {
@@ -57,6 +62,15 @@ void board_init(void)
     // leds
 	LED_INIT();
 }
+
+
+// init timer (wdt used)
+void wdt_timer_init(void)
+{
+    WDTCTL = WDT_MDLY_8;                     // Set Watchdog Timer interval to ~8ms
+    IE1 |= WDTIE;                             // Enable WDT interrupt
+}
+
 
 // main program body
 int main(void)
@@ -70,6 +84,7 @@ int main(void)
 	board_init(); // init dco and leds
 
 	irdecode_init(); // init irdecode module
+	wdt_timer_init(); // init wdt timer (used for led blinking)
 
 	while(1)
 	{
@@ -89,7 +104,8 @@ int main(void)
             int8_t code = ircode_decode();
             if (code>=0)
             {
-                LED_GREEN_SWAP();
+                led_timeout = LED_TIMEOUT_PRESET;
+                LED_GREEN_ON();
             }
             ircode_mark_used();
             #endif
@@ -99,3 +115,13 @@ int main(void)
 	return -1;
 }
 
+// Watchdog Timer interrupt service routine
+#pragma vector=WDT_VECTOR
+__interrupt void watchdog_timer(void)
+{
+    if (led_timeout>0)
+    {
+        led_timeout--;
+        if (led_timeout==0) LED_GREEN_OFF();
+    }
+}
