@@ -11,6 +11,6 @@ Done:
 	- script generating .h file containing ir codes
 	- decode function
 
-Todo:
+Application:
 
-    - application
+    Winch motor ir remote controll (two buttons and two outputs - up/down relay).
