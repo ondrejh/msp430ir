@@ -9,9 +9,9 @@
 # The TXT file is used for BSL loading, the ELF can be used for JTAG use
 #
 TARGET     = m430ir
-MCU        = msp430g2553
+#MCU        = msp430g2553
 #MCU        = msp430g2452
-#MCU        = msp430g2201
+MCU        = msp430g2201
 # List all the source files here
 # eg if you have a source file foo.c then list it here
 #SOURCES = main.c uart.c irdecode.c
