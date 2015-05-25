@@ -21,6 +21,11 @@
 //            |                 |
 //            |             P1.7|<-- IR receiver
 //            |                 |
+//            |             P2.2|--> PWM (Output)
+//            |                 |
+//            |             P2.3|--> LED
+//            |             P2.4|<-- BTN 1
+//            |             P2.5|<-- BTN 2
 //
 // alternatively the MSP430G2452(20pin) or MSP430G2201(20pin)
 //    can be used (no uart)
@@ -47,6 +52,16 @@
 #define LED_GREEN_OFF() {P1OUT&=~0x40;}
 #define LED_GREEN_SWAP() {P1OUT^=0x40;}
 
+#define BTN_LED_INIT() do{P2DIR|=0x08;P2OUT&=~0x08;P2DIR&=~0x30;}while(0)
+#define LED_ON() do{P2OUT|=0x08;}while(0)
+#define LED_OFF() do{P2OUT&=~0x08;}while(0)
+#define BTN1 ((P2IN&0x10)==0)
+#define BTN2 ((P2IN&0x20)==0)
+
+#define OUT_INIT() do{P2DIR|=0x04;P2OUT&=~0x04;}while(0)
+#define OUT_ON() do{P2OUT|=0x04;}while(0)
+#define OUT_OFF() do{P2OUT&=~0x04;}while(0)
+
 
 // timeout timer for led swithing off (uses wdt)
 #define LED_TIMEOUT_PRESET 25
@@ -61,6 +76,8 @@ void board_init(void)
 
     // leds
 	LED_INIT();
+	BTN_LED_INIT();
+	OUT_INIT();
 }
 
 
@@ -88,7 +105,7 @@ int main(void)
 
 	while(1)
 	{
-        __bis_SR_register(CPUOFF + GIE); // enter sleep mode (leave on rtc second event)
+        __bis_SR_register(CPUOFF + GIE); // enter sleep mode
         if (is_ircode_present())
         {
             #ifdef DEBUG
@@ -110,6 +127,16 @@ int main(void)
             ircode_mark_used();
             #endif
         }
+
+        if (BTN1) {
+            LED_ON();
+            OUT_ON();
+        }
+        if (BTN2) {
+            LED_OFF();
+            OUT_OFF();
+        }
+
 	}
 
 	return -1;
@@ -124,4 +151,5 @@ __interrupt void watchdog_timer(void)
         led_timeout--;
         if (led_timeout==0) LED_GREEN_OFF();
     }
+    __bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
 }
