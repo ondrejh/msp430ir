@@ -73,8 +73,8 @@ uint16_t pwm = 0;
 void board_init(void)
 {
 	// oscillator
-	BCSCTL1 = CALBC1_16MHZ;		// Set DCO
-	DCOCTL = CALDCO_16MHZ;
+	BCSCTL1 = CALBC1_1MHZ;		// Set DCO
+	DCOCTL = CALDCO_1MHZ;
 
     // leds
 	LED_INIT();
@@ -86,10 +86,24 @@ void board_init(void)
 // init timer (wdt used)
 void wdt_timer_init(void)
 {
-    WDTCTL = WDT_MDLY_0_064;                    // Set Watchdog Timer interval to ~0.5ms
+    WDTCTL = WDT_MDLY_8;                    // Set Watchdog Timer interval to ~8ms
     IE1 |= WDTIE;                             // Enable WDT interrupt
 }
 
+#define PWM_MAX 0x80
+
+void timer1_init(void)
+{
+    P2SEL|=0x04;
+    P2SEL2&=~0x04;
+
+    TA1CTL = TASSEL_2 | ID_0 | MC_1;
+    TA1CCR0 = PWM_MAX;
+    TA1CCTL1 = OUTMOD_7;
+    TA1CCR1 = 0x0000;
+}
+
+#define set_pwm(x) do{TA1CCR1=x;}while(0)
 
 // main program body
 int main(void)
@@ -104,6 +118,8 @@ int main(void)
 
 	irdecode_init(); // init irdecode module
 	wdt_timer_init(); // init wdt timer (used for led blinking)
+
+	timer1_init();
 
 	while(1)
 	{
@@ -132,11 +148,11 @@ int main(void)
 
         if (BTN1) {
             LED_ON();
-            pwm = 2;
+            set_pwm(0x100);
         }
         if (BTN2) {
             LED_OFF();
-            pwm = 0;
+            set_pwm(0);
         }
 
 	}
@@ -148,23 +164,11 @@ int main(void)
 #pragma vector=WDT_VECTOR
 __interrupt void watchdog_timer(void)
 {
-    static uint16_t cnt = 1;
-
-    if ((cnt&0x0F)>=pwm)
-        OUT_OFF();
-    else
-        OUT_ON();
-
-    if (cnt==0) {
-        if (led_timeout>0)
-        {
-            led_timeout--;
-            if (led_timeout==0) LED_GREEN_OFF();
-        }
-        cnt=0;
-        __bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
+    if (led_timeout>0)
+    {
+        led_timeout--;
+        if (led_timeout==0) LED_GREEN_OFF();
     }
 
-    cnt++;
-    cnt&=0x7F;
+    __bic_SR_register_on_exit(CPUOFF);  // Clear CPUOFF bit from 0(SR)
 }
