@@ -121,6 +121,8 @@ int main(void)
 
 	timer1_init();
 
+	uint16_t pwm = 0,pwm_preset = 0;
+
 	while(1)
 	{
         __bis_SR_register(CPUOFF + GIE); // enter sleep mode
@@ -148,12 +150,19 @@ int main(void)
 
         if (BTN1) {
             LED_ON();
-            set_pwm(0x100);
+            pwm_preset = 0x80;
         }
         if (BTN2) {
             LED_OFF();
-            set_pwm(0);
+            pwm_preset = 0;
         }
+
+        if (pwm<pwm_preset)
+            pwm++;
+        if (pwm>pwm_preset)
+            pwm--;
+
+        set_pwm(pwm);
 
 	}
 
