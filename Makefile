@@ -20,7 +20,7 @@ SOURCES = main.c uart.c irdecode.c
 INCLUDES = -IInclude
 # Defines
 DEFINES = -DDEBUG
-DEFINES =
+#DEFINES =
 # Add or subtract whatever MSPGCC flags you want. There are plenty more
 #######################################################################################
 CFLAGS   = -mmcu=$(MCU) -g -Os -Wall -Wunused $(INCLUDES) $(DEFINES)
@@ -48,7 +48,8 @@ DEPEND = $(SOURCES:.c=.d)
 # all the object files
 OBJECTS = $(SOURCES:.c=.o)
 Release: all
-all: $(TARGET).elf $(TARGET).hex $(TARGET).txt
+#all: $(TARGET).elf $(TARGET).hex $(TARGET).txt
+all: $(TARGET).elf $(TARGET).hex
 $(TARGET).elf: $(OBJECTS)
 	echo "Linking $@"
 	$(CC) $(OBJECTS) $(LDFLAGS) $(LIBS) -o $@
@@ -91,4 +92,4 @@ program:
 	mspdebug rf2500 "prog $(TARGET).hex"
 
 program_win:
-	MSP430Flasher -i TIUSB -m SBW2 -g -n $(MCU) -e ERASE_ALL -w $(TARGET).hex -v -z [VCC]
+	MSP430Flasher -i TIUSB -m SBW2 -g -e ERASE_ALL -w $(TARGET).hex -v -z [VCC]

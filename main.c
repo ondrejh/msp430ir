@@ -126,6 +126,7 @@ int main(void)
 	while(1)
 	{
         __bis_SR_register(CPUOFF + GIE); // enter sleep mode
+        int8_t code = -1;
         if (is_ircode_present())
         {
             #ifdef DEBUG
@@ -138,7 +139,7 @@ int main(void)
             LED_GREEN_OFF();
             #else
             // normal mode tries to decode received code
-            int8_t code = ircode_decode();
+            code = ircode_decode();
             if (code>=0)
             {
                 led_timeout = LED_TIMEOUT_PRESET;
@@ -148,11 +149,11 @@ int main(void)
             #endif
         }
 
-        if (BTN1) {
+        if ((BTN1) || (code==1)) {
             LED_ON();
             pwm_preset = 0x80;
         }
-        if (BTN2) {
+        if ((BTN2) || (code==2)) {
             LED_OFF();
             pwm_preset = 0;
         }

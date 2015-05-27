@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 /// ir receiver input
-#define IR_PIN_MASK BIT7
+#define IR_PIN_MASK BIT5
 
 /// ir receiver timer presets
 #define IRCODE_TIMEOUT 25000 // max time to capture code
