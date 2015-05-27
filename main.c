@@ -132,6 +132,7 @@ int main(void)
             #ifdef DEBUG
             // debug mode prints whole received code on uart
             LED_GREEN_ON();
+            code = ircode_decode();
             ircode_uart_send();
             //uart_putint8(ircode_decode());
             //uart_puts("\r\n");

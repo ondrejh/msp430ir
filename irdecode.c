@@ -33,7 +33,7 @@
 /// defines
 
 // ir code variance (maximum difference of code pulse)
-#define IRVARIANCE 50
+#define IRVARIANCE 150
 
 // ir receiver signalisation led
 #define IRLED_INIT() {P1DIR|=0x01;P1OUT&=~0x01;}
