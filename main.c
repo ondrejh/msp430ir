@@ -233,8 +233,8 @@ int main(void)
         // use remote codes
         if (code==1) pwm_preset = pwm_start; // start
         if (code==2) pwm_preset = 0; // stop
-        if (code==4) pwm_more(&pwm_preset,REMOTE_SPEED_STEP); // forward (more power)
-        if (code==3) pwm_less(&pwm_preset,REMOTE_SPEED_STEP); // backward (less power)
+        if ((code==4) || (code==6)) pwm_more(&pwm_preset,REMOTE_SPEED_STEP); // forward (more power)
+        if ((code==3) || (code==5)) pwm_less(&pwm_preset,REMOTE_SPEED_STEP); // backward (less power)
         if ((code==0) && (pwm_preset!=0)) // program .. save preset
             pwm_start = pwm_preset;
 
