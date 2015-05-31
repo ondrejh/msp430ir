@@ -1,12 +1,12 @@
 //******************************************************************************
-// msp430 ir receiver
+// msp430 ir receiver based rocking cot drive
 //
 // author: Ondrej Hejda
-// date:   10.2.2013
+// date:   30.5.2015
 //
 // resources:
 //
-//  some of my other repos
+//  some of my other repos and gloogl :-)
 //
 //
 // hardware: MSP430G2553 (launchpad)
@@ -95,7 +95,7 @@ void wdt_timer_init(void)
 
 #define DEFAULT_START_SPEED 0x50
 
-#define BTN_SPEED_STEP 0x02
+#define BTN_SPEED_STEP 0x03
 #define REMOTE_SPEED_STEP 0x02
 
 void timer1_init(void)
@@ -147,6 +147,7 @@ int main(void)
 	int16_t pwm_preset = 0;
 	uint16_t pwm_start = DEFAULT_START_SPEED;
 	uint16_t btn1cnt=0, btn2cnt=0;
+	uint16_t led_blind = 0;
 
 	WDTCTL = WDTPW + WDTHOLD;	// Stop WDT
 
@@ -243,8 +244,10 @@ int main(void)
         if (pwm>pwm_preset) pwm--;
 
         // led
-        if (pwm!=0) LED_ON();
-        else LED_OFF();
+        if (btnboth_re||btn1_re||btn2_re||(code>=0)) led_blind = 5;
+        if ((pwm!=0) && (led_blind==0)) LED_ON();
+            else LED_OFF();
+        if (led_blind) led_blind--;
 
         // output
         set_pwm(pwm);
