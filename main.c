@@ -73,8 +73,10 @@ uint16_t pwm = 0;
 void board_init(void)
 {
 	// oscillator
-	BCSCTL1 = CALBC1_1MHZ;		// Set DCO
+	BCSCTL1 = CALBC1_1MHZ; // Set DCO
 	DCOCTL = CALDCO_1MHZ;
+
+	FCTL2 = FWKEY + FSSEL0 + FN1; // MCLK/3 for Flash Timing Generator
 
     // leds
 	LED_INIT();
@@ -138,6 +140,41 @@ void pwm_less(int16_t *pwm_preset, uint16_t how_much_less)
         *pwm_preset = 0;
 }
 
+
+uint16_t read_preset (void)
+{
+    char *Flash_ptr; // Flash pointer
+    uint16_t preset;
+
+    Flash_ptr = (char *) 0x1000; // Initialize Flash pointer
+    while ((FCTL3 & BUSY) != 0);
+    preset = (*Flash_ptr++)<<8;
+    while ((FCTL3 & BUSY) != 0);
+    preset |= *Flash_ptr;
+
+    return preset;
+}
+
+void write_preset(uint16_t value)
+{
+    char *Flash_ptr;                          // Flash pointer
+
+    Flash_ptr = (char *) 0x1000;              // Initialize Flash pointer
+    FCTL1 = FWKEY + ERASE;                    // Set Erase bit
+    FCTL3 = FWKEY;                            // Clear Lock bit
+    *Flash_ptr = 0;                           // Dummy write to erase Flash segment
+
+    FCTL1 = FWKEY + WRT;                      // Set WRT bit for write operation
+
+    while ((FCTL3 & BUSY) != 0);
+    *Flash_ptr++ = (value>>8);                   // Write value to flash
+    while ((FCTL3 & BUSY) != 0);
+    *Flash_ptr = (value&0xFF);                   // Write value to flash
+
+    FCTL1 = FWKEY;                            // Clear WRT bit
+    FCTL3 = FWKEY + LOCK;                     // Set LOCK bit
+}
+
 // main program body
 int main(void)
 {
@@ -161,6 +198,12 @@ int main(void)
 	wdt_timer_init(); // init wdt timer (used for led blinking)
 
 	timer1_init();
+
+	pwm_start = read_preset();
+	if ((pwm_start<PWM_MIN) || (pwm_start>PWM_MAX)) {
+        pwm_start = DEFAULT_START_SPEED;
+        write_preset(pwm_start);
+	}
 
 	while(1)
 	{
@@ -236,8 +279,10 @@ int main(void)
         if (code==2) pwm_preset = 0; // stop
         if ((code==4) || (code==6)) pwm_more(&pwm_preset,REMOTE_SPEED_STEP); // forward (more power)
         if ((code==3) || (code==5)) pwm_less(&pwm_preset,REMOTE_SPEED_STEP); // backward (less power)
-        if ((code==0) && (pwm_preset!=0)) // program .. save preset
+        if ((code==0) && (pwm_preset!=0)) { // program .. save preset
             pwm_start = pwm_preset;
+            write_preset(pwm_start);
+        }
 
         // ramps
         if (pwm<pwm_preset) pwm++;
