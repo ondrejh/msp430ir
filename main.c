@@ -95,7 +95,7 @@ void wdt_timer_init(void)
 
 #define DEFAULT_START_SPEED 0x50
 
-#define BTN_SPEED_STEP 0x08
+#define BTN_SPEED_STEP 0x02
 #define REMOTE_SPEED_STEP 0x02
 
 void timer1_init(void)
@@ -114,6 +114,8 @@ void timer1_init(void)
 #define BTN_FILTER_MAX        25
 #define BTN_FILTER_THOLD_HIGH 20
 #define BTN_FILTER_THOLD_LOW  15
+
+#define BTN_REPEAT_CYCLE 10
 
 // accelerate (button or remote)
 void pwm_more(int16_t *pwm_preset, uint16_t how_much_more)
@@ -144,6 +146,7 @@ int main(void)
 	uint16_t pwm = 0;
 	int16_t pwm_preset = 0;
 	uint16_t pwm_start = DEFAULT_START_SPEED;
+	uint16_t btn1cnt=0, btn2cnt=0;
 
 	WDTCTL = WDTPW + WDTHOLD;	// Stop WDT
 
@@ -203,6 +206,21 @@ int main(void)
         if ((!btn1)    && (fbtn1>BTN_FILTER_THOLD_HIGH))    {btn1_re=true;    btn1=true;}
         if ((!btn2)    && (fbtn2>BTN_FILTER_THOLD_HIGH))    {btn2_re=true;    btn2=true;}
         if ((!btnboth) && (fbtnboth>BTN_FILTER_THOLD_HIGH)) {btnboth_re=true; btnboth=true;}
+        // button repeat counter
+        if (btn1) {
+            btn1cnt++;
+            if (btn1cnt>=BTN_REPEAT_CYCLE) {
+                btn1_re = true;
+                btn1cnt=0;
+            }
+        } else btn1cnt=0;
+        if (btn2) {
+            btn2cnt++;
+            if (btn2cnt>=BTN_REPEAT_CYCLE) {
+                btn2_re = true;
+                btn2cnt=0;
+            }
+        } else btn2cnt=0;
 
         // use rising edge signals
         if (btnboth_re) // start/stop (both buttons)
