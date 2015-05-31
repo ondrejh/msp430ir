@@ -91,6 +91,12 @@ void wdt_timer_init(void)
 }
 
 #define PWM_MAX 0x80
+#define PWM_MIN 0x20
+
+#define DEFAULT_START_SPEED 0x50
+
+#define BTN_SPEED_STEP 0x08
+#define REMOTE_SPEED_STEP 0x02
 
 void timer1_init(void)
 {
@@ -105,9 +111,40 @@ void timer1_init(void)
 
 #define set_pwm(x) do{TA1CCR1=x;}while(0)
 
+#define BTN_FILTER_MAX        25
+#define BTN_FILTER_THOLD_HIGH 20
+#define BTN_FILTER_THOLD_LOW  15
+
+// accelerate (button or remote)
+void pwm_more(int16_t *pwm_preset, uint16_t how_much_more)
+{
+    *pwm_preset += how_much_more;
+
+    if (*pwm_preset<PWM_MIN)
+        *pwm_preset = PWM_MIN;
+
+    if (*pwm_preset>PWM_MAX)
+        *pwm_preset = PWM_MAX;
+}
+
+// decelerate (button or remote)
+void pwm_less(int16_t *pwm_preset, uint16_t how_much_less)
+{
+    *pwm_preset -= how_much_less;
+
+    if (*pwm_preset<PWM_MIN)
+        *pwm_preset = 0;
+}
+
 // main program body
 int main(void)
 {
+    int16_t fbtn1=0,fbtn2=0,fbtnboth=0;
+    bool btn1=false,btn2=false,btnboth=false;
+	uint16_t pwm = 0;
+	int16_t pwm_preset = 0;
+	uint16_t pwm_start = DEFAULT_START_SPEED;
+
 	WDTCTL = WDTPW + WDTHOLD;	// Stop WDT
 
     #ifdef DEBUG
@@ -120,8 +157,6 @@ int main(void)
 	wdt_timer_init(); // init wdt timer (used for led blinking)
 
 	timer1_init();
-
-	uint16_t pwm = 0,pwm_preset = 0;
 
 	while(1)
 	{
@@ -150,22 +185,51 @@ int main(void)
             #endif
         }
 
-        if ((BTN1) || (code==1)) {
-            LED_ON();
-            pwm_preset = 0x80;
-        }
-        if ((BTN2) || (code==2)) {
-            LED_OFF();
-            pwm_preset = 0;
-        }
+        // filter count
+        fbtnboth += (BTN1 &&  BTN2) ? 1 : -1;
+        fbtn1    += (BTN1 && !BTN2) ? 1 : -1;
+        fbtn2    += (BTN2 && !BTN1) ? 1 : -1;
+        // filter count limits
+        bool btn1_re=false, btn2_re=false, btnboth_re=false;
+        if (fbtnboth > BTN_FILTER_MAX) fbtnboth = BTN_FILTER_MAX;
+        if (fbtn1    > BTN_FILTER_MAX) fbtn1    = BTN_FILTER_MAX;
+        if (fbtn2    > BTN_FILTER_MAX) fbtn2    = BTN_FILTER_MAX;
+        if (fbtnboth < 0) fbtnboth = 0;
+        if (fbtn1    < 0) fbtn1    = 0;
+        if (fbtn2    < 0) fbtn2    = 0;
+        if ((btn1)    && (fbtn1<BTN_FILTER_THOLD_LOW))    btn1    = false;
+        if ((btn2)    && (fbtn2<BTN_FILTER_THOLD_LOW))    btn2    = false;
+        if ((btnboth) && (fbtnboth<BTN_FILTER_THOLD_LOW)) btnboth = false;
+        if ((!btn1)    && (fbtn1>BTN_FILTER_THOLD_HIGH))    {btn1_re=true;    btn1=true;}
+        if ((!btn2)    && (fbtn2>BTN_FILTER_THOLD_HIGH))    {btn2_re=true;    btn2=true;}
+        if ((!btnboth) && (fbtnboth>BTN_FILTER_THOLD_HIGH)) {btnboth_re=true; btnboth=true;}
 
-        if (pwm<pwm_preset)
-            pwm++;
-        if (pwm>pwm_preset)
-            pwm--;
+        // use rising edge signals
+        if (btnboth_re) // start/stop (both buttons)
+            pwm_preset = (pwm_preset==0) ? pwm_start : 0;
+        if (btn1_re) // plus (button1)
+            pwm_more(&pwm_preset,BTN_SPEED_STEP);
+        if (btn2_re) // minus (button2)
+            pwm_less(&pwm_preset,BTN_SPEED_STEP);
 
+        // use remote codes
+        if (code==1) pwm_preset = pwm_start; // start
+        if (code==2) pwm_preset = 0; // stop
+        if (code==4) pwm_more(&pwm_preset,REMOTE_SPEED_STEP); // forward (more power)
+        if (code==3) pwm_less(&pwm_preset,REMOTE_SPEED_STEP); // backward (less power)
+        if ((code==0) && (pwm_preset!=0)) // program .. save preset
+            pwm_start = pwm_preset;
+
+        // ramps
+        if (pwm<pwm_preset) pwm++;
+        if (pwm>pwm_preset) pwm--;
+
+        // led
+        if (pwm!=0) LED_ON();
+        else LED_OFF();
+
+        // output
         set_pwm(pwm);
-
 	}
 
 	return -1;
